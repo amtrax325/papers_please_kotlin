@@ -80,15 +80,15 @@ class Inspector {
                 while (matcher.find())
                     nations.add(matcher.group(1))
 
-                if(!nations.isEmpty()) {
-                    while (!nations.isEmpty()) {
+                if(nations.isNotEmpty()) {
+                    while (nations.isNotEmpty()) {
                         required_vaccinations[vaccination]?.remove(nations.removeAt(0))
                     }
                 }
                 else if (s.contains("Foreigners"))
-                    required_vaccinations.get(vaccination)?.remove("FOREIGNERS")
+                    required_vaccinations[vaccination]?.remove("FOREIGNERS")
                 else
-                    required_vaccinations.get(vaccination)?.remove("ENTRANTS")
+                    required_vaccinations[vaccination]?.remove("ENTRANTS")
 
 
             } else if (s.matches(Regex("\\D+ require (\\w+\\s?\\w*) vaccination"))) {
@@ -104,17 +104,17 @@ class Inspector {
                 pattern = Pattern.compile("\\D+ require (\\w+\\s?\\w*) vaccination")
                 matcher = pattern.matcher(s)
                 matcher.find()
-                if(!nations.isEmpty())
+                if(nations.isNotEmpty())
                     required_vaccinations[matcher.group(1)] = nations
                 else if (s.contains("Foreigners"))
                 {
                     nations.add("FOREIGNERS")
-                    required_vaccinations.put(matcher.group(1),nations)
+                    required_vaccinations[matcher.group(1)]=nations
                 }
                 else
                 {
                     nations.add("ENTRANTS")
-                    required_vaccinations.put(matcher.group(1),nations)
+                    required_vaccinations[matcher.group(1)] = nations
 
                 }
 
