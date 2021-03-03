@@ -1,4 +1,5 @@
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 
@@ -147,6 +148,55 @@ class Inspector {
         matcher.find()
         col.add(matcher.group(1))
     }
+
+    private fun check(v: ArrayList<String>, type: String): String {
+
+        if (type == "DOCUMENT" || type == "EXP" || type == "ACCESS" || type == "VACCINESS")
+            return ""
+        if (v.distinct().count() > 1)
+            return "Detainment: " + type + " mismatch."
+        else
+            return ""
+    }
+
+    private fun vaccineCheck(): String {
+
+
+        val vacineSet = ArrayList<String>()
+        vacineSet.addAll(required_vaccinations.keys)
+
+        for ((index) in vacineSet.withIndex()) {
+            val nations = required_vaccinations.get(index)
+
+            for (nation in nations!!.withIndex()) {
+
+                if ((nation.equals("FOREIGNERS") && !values.get("nationality")!!.get(0)
+                        .equals("Arstotzka")) || nation.equals("ENTRANTS") || nation.equals(
+                        values.get("nationality")!!.get(0)
+                    )
+                ) {
+                    if (!values.get("DOCUMENT")!!.contains("certificate of vaccination"))
+                        return "Entry denied: missing required certificate of vaccination."
+                    if (values.get("VACCINESS")!!.get(0).contains(vacineSet.get(index)))
+                        continue
+                    return "Entry denied: missing required vaccination."
+                }
+            }
+        }
+        return ""
+    }
+
+    private fun expChecking(date: String?): String {
+
+        if (date == null)
+            return ""
+        val localDate = LocalDate.parse(date.substring(0, 10), DateTimeFormatter.ofPattern("yyyy.MM.dd"))
+        if (localDate.isAfter(expirienceDate) || localDate.isEqual(expirienceDate))
+            return ""
+        return "Entry denied: " + date.substring(11) + " expired."
+    }
+
+
 }
 
 
