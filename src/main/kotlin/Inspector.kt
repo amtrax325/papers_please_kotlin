@@ -170,8 +170,7 @@ class Inspector {
 
             for (nation in nations!!.withIndex()) {
 
-                if ((nation.equals("FOREIGNERS") && !values.get("nationality")!!.get(0)
-                        .equals("Arstotzka")) || nation.equals("ENTRANTS") || nation.equals(
+                if ((nation.equals("FOREIGNERS") && values.get("nationality")!!.get(0) != "Arstotzka") || nation.equals("ENTRANTS") || nation.equals(
                         values.get("nationality")!!.get(0)
                     )
                 ) {
@@ -195,7 +194,69 @@ class Inspector {
             return ""
         return "Entry denied: " + date.substring(11) + " expired."
     }
+    private fun setDocument(docName : String, document : String){
 
+        val doc = docName.replace("_"," ")
+        values["DOCUMENT"]?.add(doc)
+        getName(document)
+        getDate(doc,document)
+        when (docName) {
+            "diplomatic_authorization" -> values["ACCESS"]?.add(document)
+            "certificate_of_vaccination" -> values["VACCINESS"]?.add(document)
+        }
+        for (patterns in common_regex_patterns.keys){
+            pattern = Pattern.compile(common_regex_patterns.get(patterns));
+            matcher = pattern.matcher(document);
+            if(matcher.find())
+                values[patterns]?.add(matcher.group(1));
+        }
+    }
+
+    private fun getName(name: String) {
+        pattern = Pattern.compile(special_regex_patterns.get("name"));
+        matcher = pattern.matcher(name);
+        if(matcher.find());
+        values["name"]?.add(matcher.group(2)+" "+matcher.group(1));
+    }
+
+    private fun getDate(docName: String, document: String) {
+        pattern = Pattern.compile(special_regex_patterns.get("EXP"));
+        matcher = pattern.matcher(document);
+        if(matcher.find())
+            values["EXP"]?.add(matcher.group(1) + " " + docName);
+    }
+    private fun resetValues()
+    {
+        values =  HashMap()
+        for (s in signatures) values[s] = ArrayList()
+    }
+
+    fun inspect(a : Map<String,String>) : String{
+        resetValues()
+
+        for (ks in a.keys){
+            this.setDocument(ks,a[ks]!!)
+
+            if(values["name"]?.contains(wanted_by_the_state) == true)
+                return "Detainment: Entrant is a wanted criminal."
+
+            for(i in 0 .. values.size) {
+
+                var test = expChecking(values["EXP"]?.get(i))
+                if (test.isNotEmpty()) return test
+
+            }
+
+            for (i in 0 .. values["EXP"]!!.size)
+            {
+                if (values["DOCUMENT"]?.contains(entrants_requirements[i]) == false)
+                    return "Entry denied: missing required " + entrants_requirements.get(i) + ".";
+            }
+
+
+
+        }
+    }
 
 }
 
