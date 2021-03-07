@@ -5,6 +5,7 @@ import java.util.regex.Pattern
 
 class Inspector {
 
+
     private var values = HashMap<String, ArrayList<String>>()
     private val common_regex_patterns = HashMap<String, String>()
     private val special_regex_patterns = HashMap<String, String>()
@@ -18,7 +19,7 @@ class Inspector {
     private val required_vaccinations = HashMap<String, ArrayList<String>>()
     private val workers_requirements = ArrayList<String>()
     private var wanted_by_the_state: String = ""
-    private val expirienceDate = LocalDate.of(1982, 11, 22)
+    private val experienceDate = LocalDate.of(1982, 11, 22)
 
     private lateinit var matcher: Matcher
     private lateinit var pattern: Pattern
@@ -40,7 +41,7 @@ class Inspector {
         signatures.addAll(special_regex_patterns.keys)
         signatures.add("DOCUMENT")
         signatures.add("ACCESS")
-        signatures.add("VACCINESS")
+        signatures.add("VACCINES")
     }
 
     fun receiveBulletin(bulletin: String) {
@@ -151,34 +152,36 @@ class Inspector {
 
     private fun check(v: ArrayList<String>, type: String): String {
 
-        if (type == "DOCUMENT" || type == "EXP" || type == "ACCESS" || type == "VACCINESS")
+        if (type == "DOCUMENT" || type == "EXP" || type == "ACCESS" || type == "VACCINES")
             return ""
-        if (v.distinct().count() > 1)
-            return "Detainment: " + type + " mismatch."
+        return if (v.distinct().count() > 1)
+            "Detainment: $type mismatch."
         else
-            return ""
+            ""
     }
 
     private fun vaccineCheck(): String {
 
 
-        val vacineSet = ArrayList<String>()
-        vacineSet.addAll(required_vaccinations.keys)
+        val vaccineSet = ArrayList<String>()
+        vaccineSet.addAll(required_vaccinations.keys)
 
-        for ((index) in vacineSet.withIndex()) {
+        for ((index) in vaccineSet.withIndex()) {
             val nations = required_vaccinations.get(index)
 
             for (nation in nations!!.withIndex()) {
 
-                if ((nation.equals("FOREIGNERS") && values.get("nationality")!!.get(0) != "Arstotzka") || nation.equals("ENTRANTS") || nation.equals(
-                        values.get("nationality")!!.get(0)
+                if ((nation.equals("FOREIGNERS") && values["nationality"]!![0] != "Arstotzka") || nation.equals(
+                        "ENTRANTS"
+                    ) || nation.equals(
+                        values["nationality"]!![0]
                     )
                 ) {
-                    if (!values.get("DOCUMENT")!!.contains("certificate of vaccination"))
-                        return "Entry denied: missing required certificate of vaccination."
-                    if (values.get("VACCINESS")!!.get(0).contains(vacineSet.get(index)))
+                    if (!values["DOCUMENT"]!!.contains("certificate of vaccination"))
+                        return "missing required certificate of vaccination".entryDenied()
+                    if (values["VACCINES"]!![0].contains(vaccineSet[index]))
                         continue
-                    return "Entry denied: missing required vaccination."
+                    return "missing required vaccination.".entryDenied()
                 }
             }
         }
@@ -190,110 +193,126 @@ class Inspector {
         if (date == null)
             return ""
         val localDate = LocalDate.parse(date.substring(0, 10), DateTimeFormatter.ofPattern("yyyy.MM.dd"))
-        if (localDate.isAfter(expirienceDate) || localDate.isEqual(expirienceDate))
+        if (localDate.isAfter(experienceDate) || localDate.isEqual(experienceDate))
             return ""
-        return "Entry denied: " + date.substring(11) + " expired."
+        return (date.substring(11) + " expired").entryDenied()
     }
-    private fun setDocument(docName : String, document : String){
 
-        val doc = docName.replace("_"," ")
+    private fun setDocument(docName: String, document: String) {
+
+        val doc = docName.replace("_", " ")
         values["DOCUMENT"]?.add(doc)
         getName(document)
-        getDate(doc,document)
+        getDate(doc, document)
         when (docName) {
             "diplomatic_authorization" -> values["ACCESS"]?.add(document)
-            "certificate_of_vaccination" -> values["VACCINESS"]?.add(document)
+            "certificate_of_vaccination" -> values["VACCINES"]?.add(document)
         }
-        for (patterns in common_regex_patterns.keys){
-            pattern = Pattern.compile(common_regex_patterns.get(patterns));
-            matcher = pattern.matcher(document);
-            if(matcher.find())
-                values[patterns]?.add(matcher.group(1));
+        for (patterns in common_regex_patterns.keys) {
+            pattern = Pattern.compile(common_regex_patterns[patterns]!!)
+            matcher = pattern.matcher(document)
+            if (matcher.find())
+                values[patterns]?.add(matcher.group(1))
         }
     }
 
     private fun getName(name: String) {
-        pattern = Pattern.compile(special_regex_patterns.get("name"));
-        matcher = pattern.matcher(name);
-        if(matcher.find());
-        values["name"]?.add(matcher.group(2)+" "+matcher.group(1));
+        pattern = Pattern.compile(special_regex_patterns["name"]!!)
+        matcher = pattern.matcher(name)
+        if (matcher.find())
+        values["name"]?.add(matcher.group(2) + " " + matcher.group(1))
     }
 
     private fun getDate(docName: String, document: String) {
-        pattern = Pattern.compile(special_regex_patterns.get("EXP"));
-        matcher = pattern.matcher(document);
-        if(matcher.find())
-            values["EXP"]?.add(matcher.group(1) + " " + docName);
+        pattern = Pattern.compile(special_regex_patterns["EXP"]!!)
+        matcher = pattern.matcher(document)
+        if (matcher.find())
+            values["EXP"]?.add(matcher.group(1) + " " + docName)
     }
-    private fun resetValues()
-    {
-        values =  HashMap()
+
+    private fun resetValues() {
+        values = HashMap()
         for (s in signatures) values[s] = ArrayList()
     }
 
-    fun inspect(a : Map<String,String>) : String{
+    fun inspect(a: Map<String, String>): String {
         resetValues()
 
-        for (ks in a.keys){
-            this.setDocument(ks,a[ks]!!)
+        for (ks in a.keys) {
+            this.setDocument(ks, a[ks]!!)
 
-            if(values["name"]?.contains(wanted_by_the_state) == true)
+            if (values["name"]?.contains(wanted_by_the_state) == true)
                 return "Detainment: Entrant is a wanted criminal."
+for (i in 0  until values.size){
+    val test = check(values[signatures[i]]!!,signatures[i])
+    if(test.isNotEmpty())
+        return test
+}
 
-            for(i in 0 ..values["EXP"]?.size!!) {
+            for (i in 0 until values["EXP"]?.size!!) {
 
-                var test = expChecking(values["EXP"]?.get(i))
+                val test = expChecking(values["EXP"]?.get(i))
                 if (test.isNotEmpty()) return test
 
             }
 
-            for (i in 0 .. entrants_requirements.size){
+            for (i in 0 until entrants_requirements.size) {
                 if (values["DOCUMENT"]?.contains(entrants_requirements[i]) == false)
-                    return "Entry denied: missing required " + entrants_requirements.get(i) + ".";
+                    return ("missing required " + entrants_requirements[i]).entryDenied()
             }
 
-            if ((values["nationality"]?.get(0) == "Arstotzka") == false) {
-                for (i in 0..foreigners_requirements.size) {
+            if (values["nationality"]?.get(0) != "Arstotzka") {
+                for (i in 0 until foreigners_requirements.size) {
                     if ((values["DOCUMENT"]?.contains(foreigners_requirements[i])) == false) {
                         if (foreigners_requirements[i] == "access permit") {
-                            if (values["DOCUMENT"]?.contains("diplomatic authorization") == true) {
+                            return if (values["DOCUMENT"]?.contains("diplomatic authorization") == true) {
                                 if ((values["ACCESS"]?.get(0)?.contains("Arstotzka")) == false)
-                                    return "Entry denied: invalid diplomatic authorization"
+                                    "invalid diplomatic authorization".entryDenied()
                                 else
                                     continue
                             } else if (values["DOCUMENT"]?.contains("grant of asylum") == true)
                                 continue
                             else
-                                return "Entry denied: missing required " + foreigners_requirements[i] + "."
+                                ("missing required " + foreigners_requirements[i]).entryDenied()
                         }
-                        return "Entry denied: missing required " + foreigners_requirements[i] + "."
+                        ("missing required " + foreigners_requirements[i]).entryDenied()
                     }
 
                 }
             }
 
-            }
-            if ((allowed_nations.contains(values["nationality"]?.get(0))) == false)
-                return "Entry denied: citizen of banned nation."
-
-            if (values["PURPOSE"]?.contains("WORK") == true && workers_requirements.contains("work pass")){
-                if(values["DOCUMENT"]?.contains("work pass") == false)
-                    return "Entry denied: missing required work pass."
-            }
-
-             if(vaccineCheck().isNotEmpty())
-                 return vaccineCheck()
-
-             if (values["nationality"]?.get(0) == "Arstotzka" && citizens_requirements.contains("ID card") && values["DOCUMENT"]?.contains("ID card") == false)
-                 return "Entry denied: missing required ID card.";
-
-             if(values["nationality"]?.get(0) == "Arstotzka")
-                 return "Glory to Arstotzka"
-            else
-                return "Cause no trouble"
         }
 
+        if (!allowed_nations.contains(values["nationality"]?.get(0)))
+            return "citizen of banned nation.".entryDenied()
+
+        if (values["PURPOSE"]?.contains("WORK") == true && workers_requirements.contains("work pass")) {
+            if (values["DOCUMENT"]?.contains("work pass") == false)
+                return "missing required work pass".entryDenied()
+        }
+
+        if (vaccineCheck().isNotEmpty())
+            return vaccineCheck()
+
+        if (values["nationality"]?.get(0) == "Arstotzka" && citizens_requirements.contains("ID card") && values["DOCUMENT"]?.contains(
+                "ID card"
+            ) == false
+        )
+            return "missing required ID card".entryDenied()
+
+        return if (values["nationality"]?.get(0) == "Arstotzka")
+            "Glory to Arstotzka"
+        else
+            "Cause no trouble"
     }
+
+}
+
+private fun String.entryDenied(): String {
+
+    return "Entry denied: $this ."
+}
+
 
 
 
