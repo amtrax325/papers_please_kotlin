@@ -240,25 +240,62 @@ class Inspector {
             if(values["name"]?.contains(wanted_by_the_state) == true)
                 return "Detainment: Entrant is a wanted criminal."
 
-            for(i in 0 .. values.size) {
+            for(i in 0 ..values["EXP"]?.size!!) {
 
                 var test = expChecking(values["EXP"]?.get(i))
                 if (test.isNotEmpty()) return test
 
             }
 
-            for (i in 0 .. values["EXP"]!!.size)
-            {
+            for (i in 0 .. entrants_requirements.size){
                 if (values["DOCUMENT"]?.contains(entrants_requirements[i]) == false)
                     return "Entry denied: missing required " + entrants_requirements.get(i) + ".";
             }
 
+            if ((values["nationality"]?.get(0) == "Arstotzka") == false) {
+                for (i in 0..foreigners_requirements.size) {
+                    if ((values["DOCUMENT"]?.contains(foreigners_requirements[i])) == false) {
+                        if (foreigners_requirements[i] == "access permit") {
+                            if (values["DOCUMENT"]?.contains("diplomatic authorization") == true) {
+                                if ((values["ACCESS"]?.get(0)?.contains("Arstotzka")) == false)
+                                    return "Entry denied: invalid diplomatic authorization"
+                                else
+                                    continue
+                            } else if (values["DOCUMENT"]?.contains("grant of asylum") == true)
+                                continue
+                            else
+                                return "Entry denied: missing required " + foreigners_requirements[i] + "."
+                        }
+                        return "Entry denied: missing required " + foreigners_requirements[i] + "."
+                    }
 
+                }
+            }
 
+            }
+            if ((allowed_nations.contains(values["nationality"]?.get(0))) == false)
+                return "Entry denied: citizen of banned nation."
+
+            if (values["PURPOSE"]?.contains("WORK") == true && workers_requirements.contains("work pass")){
+                if(values["DOCUMENT"]?.contains("work pass") == false)
+                    return "Entry denied: missing required work pass."
+            }
+
+             if(vaccineCheck().isNotEmpty())
+                 return vaccineCheck()
+
+             if (values["nationality"]?.get(0) == "Arstotzka" && citizens_requirements.contains("ID card") && values["DOCUMENT"]?.contains("ID card") == false)
+                 return "Entry denied: missing required ID card.";
+
+             if(values["nationality"]?.get(0) == "Arstotzka")
+                 return "Glory to Arstotzka"
+            else
+                return "Cause no trouble"
         }
+
     }
 
-}
+
 
 
 
